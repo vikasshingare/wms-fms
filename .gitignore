@@ -1,0 +1,14 @@
+**/node_modules/
+**/dist/
+**/dist-*/
+**/.env.*
+!**/.env.example
+**/.expo/
+**/.env
+**/.env.local
+**/*.log
+.runtime/
+server/uploads/
+mobile/android/
+mobile/ios/
+*.tsbuildinfo

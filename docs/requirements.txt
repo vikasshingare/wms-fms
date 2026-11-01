@@ -1,0 +1,715 @@
+CUSTOMER FIELD SERVICE MANAGEMENT& WAREHOUSE MANAGEMENT SYSTEM
+Developer Design Document
+Generic Service-Based Customer Platform • WMS • Field Engineer Mobile • Reverse Logistics
+
+Document
+Value
+Version
+4.0
+Solution Type
+Industry-agnostic Field Service Management + WMS
+Applications
+Central/Admin Portal • Regional/Operations Portal • Field Engineer Mobile App
+Reference
+BOLTS mobile presentation used only as field-process/UI reference; bank-specific terms generalized
+Primary Lifecycle
+Procurement → Warehouse → Region/Hub → Engineer → Customer Site → Service Lifecycle → Return/Repair
+
+
+1. Purpose and Scope
+This document defines a generic Field Service Management (FSM) and Warehouse Management System (WMS) platform for service-based organizations. It is not designed specifically for banks. Any organization can onboard customers, customer sites, assets/devices/equipment, service contracts and field engineers, then execute installation, preventive maintenance, breakdown/service, replacement, de-installation and reverse-logistics workflows.
+Support multiple clients/customers, industries, branches, regions, service locations and warehouses.
+Track serialized and non-serialized inventory from procurement through customer installation and return.
+Treat the Field Service Engineer (FSE) as a controlled mobile inventory holder/virtual stock location.
+Provide configurable work-order types, forms, checklists, evidence requirements, statuses and SLA rules.
+Preserve complete chain-of-custody and audit history for every serialized asset.
+Support offline-first mobile execution with barcode/QR scanning, GPS, photos, signature and OTP.
+2. Generic Business Terminology
+Legacy / Specific Term
+Generic Platform Term
+Meaning
+Bank
+Client / Customer Organization
+Organization receiving contracted services
+Merchant
+Customer Site / Service Location
+Physical place where service is performed
+MID
+External Customer Reference
+Optional client-specific identifier
+TID
+Site / Service Point / Asset Reference
+Optional configurable external reference
+Machine
+Asset / Device / Equipment
+Serialized or non-serialized serviceable item
+SIM
+Component / Consumable / SIM
+Optional component inventory
+Call
+Work Order / Service Request
+Field-service job to be executed
+Installation Call
+Installation Work Order
+New asset installation
+Complaint Call
+Breakdown / Service Work Order
+Corrective service
+De-installation Call
+De-installation Work Order
+Asset removal and return
+Machine Map/UnMap
+Asset Assign/Unassign
+Asset-to-customer-site lifecycle mapping
+
+3. Three-Application Architecture
+Application
+Users
+Responsibilities
+Central / Admin Portal
+System Admin, HO Operations, Warehouse, Customer Support, Service Manager, Auditor
+Customers/contracts; masters; procurement/inbound; central inventory; work orders; SLA; global reporting; repair/scrap; administration
+Regional / Operations Portal
+Regional Manager, Coordinator/Dispatcher, Regional Stock Manager, Supervisor
+Regional inventory; work-order assignment; engineer allocation; asset allocation; stock issue/receipt; SLA monitoring; returns/reconciliation
+Field Engineer Mobile App
+FSE/FTE/Technician
+Attendance; assigned work orders; stock-in-hand; travel/check-in; scan; installation/service/replacement/de-installation; evidence; confirmation; returns; offline sync
+
+4. End-to-End Business Lifecycle
+Procurement → Supplier/Vendor → Central Warehouse Inbound → ASN/GRN → QC → Serialized Putaway → Available Inventory → Transfer to Region/Hub → Region Receipt → Work Order Creation → Engineer Assignment → Asset Reservation → Engineer Stock Issue → Customer Site Visit → Installation/Service/Replacement/De-installation → Evidence & Customer Confirmation → Work Order Closure → Return to Engineer → Region/Hub → Central Warehouse/Repair Centre → Refurbish/Repair/Scrap → Available Inventory.
+5. Customer and Service Management
+Entity
+Core Fields
+Customer Organization
+customer_id, code, name, industry, billing/service contacts, SLA profile, contract dates, active
+Customer Site
+site_id, customer_id, site_code, name, address, pincode, city, region, geo lat/lng, geofence radius, contacts, active
+Contract / SLA
+contract_id, customer_id, service types, response SLA, resolution SLA, business calendar, escalation matrix, validity
+External References
+reference_type, reference_value, customer/site/work-order scope; supports client-specific IDs without hard-coding MID/TID
+Asset at Site
+asset_id, serial, model, site_id, install date, warranty/AMC, status, service history
+Contact
+name, role, mobile, email, preferred confirmation method
+
+6. Master Data
+Master
+Important Fields
+Branch / Warehouse / Hub
+code, name, type, address, city, region, geo, active
+Region / City / Pincode
+hierarchy, serviceability, default hub/dispatcher
+User / Role / Permission
+user, employee/vendor code, role, scope, MFA, active
+Field Engineer
+engineer_id, skills, region, hub, supervisor, serviceability, active
+Customer / Site
+customer and physical service-location masters
+Asset Category / Model
+category, model, manufacturer, serial rules, warranty, checklist profile
+Vendor / Supplier
+code, name, contacts, tax details, active
+Service Provider
+optional connectivity/third-party provider master
+Component / Accessory / Consumable
+SKU, name, UOM, serialized flag, compatible models
+Work Order Type
+installation, preventive maintenance, service/breakdown, replacement, de-installation, inspection, custom
+Status Master
+entity type, status code/name, sequence, terminal flag
+Reason / Remark / Fault / Resolution
+configurable operational codes
+Checklist / Evidence Template
+versioned questions/evidence requirements by customer/work-order/model
+Repair Centre
+code, name, address, region, capabilities, active
+
+7. Complete WMS Process
+7.1 Procurement and Inbound
+Purchase/expected receipt is created or imported from ERP/procurement system.
+Warehouse creates/receives ASN containing vendor, SKU/model, quantity and expected serialized items where available.
+Vehicle/package receipt is recorded and GRN is initiated.
+Items are counted and serialized identifiers such as serial number/IMEI/asset tag are scanned.
+Inbound QC records accepted, damaged, short, excess or rejected quantity/serials.
+Accepted stock is assigned to receiving/staging location.
+Putaway task recommends storage bin based on warehouse rules.
+Operator scans source, destination bin and serial; putaway is confirmed.
+Inventory becomes AVAILABLE at the confirmed warehouse/bin.
+Rejected/damaged items move to quarantine/rejection location and remain blocked from allocation.
+Inbound Document / Transaction
+Key Fields
+ASN
+asn_no, vendor, warehouse, expected_date, SKU/model, qty, serial list, source reference
+GRN
+grn_no, ASN, received qty, accepted/rejected qty, receiver, timestamp
+Inbound QC
+serial/SKU, condition, QC status, defect/reason, evidence
+Putaway
+task_id, source location, destination bin, serial/SKU, qty, operator, time
+
+7.2 Inventory Storage and Control
+Inventory is maintained by location + SKU/model + serial (when serialized) + status + condition.
+Serialized stock has exactly one current holder/location at a time.
+Supported stock states include AVAILABLE, RESERVED, IN_TRANSIT, ISSUED_TO_ENGINEER, INSTALLED, RETURNED, QUARANTINE, REPAIR, REFURBISHED and SCRAP.
+Cycle count and stock reconciliation must support serial scanning and variance approval.
+Inventory adjustments require privileged permission, reason code and immutable audit.
+7.3 Warehouse / Hub Transfer
+Source warehouse creates Stock Transfer Order to another warehouse, region, hub or authorized engineer location.
+Required stock is reserved.
+Picklist is generated by bin/location.
+Picker scans bin and serial/SKU; system validates reservation.
+Packing/dispatch is prepared with transfer document.
+Dispatch confirmation creates source OUT movement and destination expected receipt/auto-ASN.
+Stock status becomes IN_TRANSIT.
+Destination scans transfer and received serials.
+Short/excess/damaged discrepancies enter exception workflow.
+Receipt confirmation creates destination inventory and completes transfer.
+7.4 Region/Hub → Field Engineer Issue
+Coordinator/stock manager reserves an asset/component against a work order or engineer.
+Region stock manager opens FSE Issue transaction.
+Asset/device/component is scanned.
+System validates availability, model compatibility, customer ownership rules and reservation.
+Engineer scans/accepts physical receipt in mobile app.
+Inventory moves Region/Hub → FSE virtual inventory.
+Serialized asset status becomes ISSUED_TO_ENGINEER.
+Issued stock appears in engineer Stock-in-Hand with issue date and aging.
+7.5 Engineer → Customer Site Installation
+Engineer opens assigned Installation Work Order.
+At site, engineer performs GPS check-in and verifies customer/site.
+Engineer scans asset from Stock-in-Hand.
+Backend validates serial, engineer possession, work-order allocation and model compatibility.
+Required components/accessories/consumables are scanned/recorded.
+Installation, configuration and tests are completed.
+Mandatory evidence/checklist and customer signature/OTP are captured.
+On successful submit, inventory movement FSE → Customer Site is created.
+Asset-to-Site assignment becomes active and asset status becomes INSTALLED.
+Consumed non-returnable materials reduce engineer inventory.
+7.6 Service / Maintenance Inventory
+Service work may consume components/consumables from engineer inventory.
+Removed defective components can be captured as returnable stock with condition.
+Asset remains INSTALLED when successfully repaired at site.
+If repair requires workshop movement, asset can move Customer Site → FSE → Hub/Warehouse → Repair Centre.
+Every part consumption and removed-part return is linked to the work order.
+7.7 Replacement Process
+Replacement asset is reserved and issued to engineer.
+Engineer scans old installed asset and replacement asset.
+Old asset condition, reason and evidence are captured.
+System atomically unassigns old asset and assigns new asset to customer site.
+Old asset moves Customer Site → FSE and becomes RETURNED_TO_ENGINEER.
+New asset moves FSE → Customer Site and becomes INSTALLED.
+Both serials remain linked to the same replacement work order.
+Old asset enters reverse logistics for inspection/repair/refurbish/scrap.
+7.8 De-installation and Reverse Logistics
+Engineer verifies and scans installed asset at customer site.
+Asset-to-site assignment is closed/unassigned.
+Condition, accessories returned, photos and customer confirmation are captured.
+Asset moves Customer Site → FSE.
+Engineer returns asset to Region/Hub using scan-based handover.
+Region/Hub confirms receipt and records condition/discrepancy.
+Asset may be consolidated and transferred Region/Hub → Central Warehouse or Repair Centre.
+Warehouse/repair QC determines Available, Repair, Refurbish, Quarantine or Scrap disposition.
+7.9 Repair / Refurbishment / Scrap
+Stage
+Process
+Repair Intake
+Scan returned serial; fault/condition; source work order; warranty/contract; repair job creation
+Diagnosis
+Fault code, technician, estimate, parts required, repair decision
+Repair
+Parts consumed, actions, labor, test results
+QC
+Functional test/checklist; pass/fail; evidence
+Refurbished Return
+Repair Centre → Warehouse/Hub; condition REFURBISHED; status AVAILABLE after receipt
+Beyond Repair
+Approve scrap; reason/evidence; remove from usable inventory but retain historical serial record
+Vendor RMA
+Transfer to vendor/RMA with outward and expected return/replacement tracking
+
+8. Work Order / FSM Process
+Service request is created manually, by customer portal/API, call centre, email integration or scheduled preventive-maintenance engine.
+System validates customer, site, contract/SLA, serviceability and work-order type.
+Work order is routed to region/dispatcher.
+Coordinator assigns engineer based on skill, location, workload, availability and SLA.
+Required asset/parts are reserved and allocated.
+Engineer receives task on mobile and accepts/rejects according to policy.
+Engineer travels, checks in, executes configured workflow, captures evidence and obtains customer confirmation.
+Work order becomes COMPLETED or QC_PENDING.
+Back-office/customer QC can approve, reject/reopen or close.
+Inventory and asset lifecycle transactions remain linked to the work order.
+Work Order Type
+Typical Asset Action
+Installation
+FSE stock → Customer Site; assign asset
+Preventive Maintenance
+No movement unless parts replaced
+Breakdown / Service
+Asset remains installed or enters repair/replacement flow
+Replacement
+Old site asset → FSE; new FSE asset → site
+De-installation
+Customer Site → FSE → Hub/Warehouse
+Inspection / Survey
+Usually no stock movement
+Custom Service
+Configurable workflow/checklist/status
+
+9. Work Order Status Lifecycle
+CREATED → VALIDATED → ASSIGNED → ASSET/PARTS_ALLOCATED → ACCEPTED → EN_ROUTE → CHECKED_IN → IN_PROGRESS → COMPLETED → QC_PENDING → CLOSED
+Alternate controlled states: PENDING, ON_HOLD, REJECTED, CANCELLED, REOPENED. Transition rules are server-controlled and configurable.
+10. Asset Status Lifecycle
+RECEIVED → AVAILABLE → RESERVED → IN_TRANSIT → IN_REGION/HUB → ISSUED_TO_ENGINEER → INSTALLED → UNDER_SERVICE → RETURNED_TO_ENGINEER → IN_TRANSIT_RETURN → RETURNED_WAREHOUSE → REPAIR → REFURBISHED → AVAILABLE, or SCRAP.
+11. Field Engineer Mobile App – Generic Customer Flow
+The BOLTS presentation is retained only as a mobile-process reference for authentication, attendance, stock, receive/send stock and call execution. Bank-specific fields are converted into configurable customer/site/external-reference fields.
+Screen
+Generic Purpose
+Key Data / Actions
+Login / MFA
+Secure engineer access
+Credentials/SSO, OTP if configured, device/app validation
+Home
+Daily operational dashboard
+Today/upcoming/overdue/pending tasks; stock; returns; sync
+Attendance
+Day start/end
+Check-in/out, GPS, time, optional photo
+Stock Dashboard
+Engineer inventory
+Assets, components, SIMs if used, accessories, consumables, aging
+Receive Stock
+Accept issue from hub
+Scan asset/component; confirm custody
+Send / Return Stock
+Handover stock
+Destination, scan, condition, handover confirmation
+My Work Orders
+Assigned jobs
+Type, customer, site, priority, SLA, schedule, status
+Work Order Detail
+Job context
+Customer/site, contacts, issue, asset, external references, SLA
+Travel / Check-in
+Site arrival
+GPS, timestamp, geofence, navigation
+Customer/Site Verify
+Confirm service location
+Site/contact/address/external refs
+Asset Scan
+Validate equipment
+Serial/IMEI/QR/barcode, current holder/status
+Installation
+Install asset
+Assign asset, components, tests, checklist, evidence
+Service
+Diagnose/repair
+Fault, action, parts, tests, before/after evidence
+Replacement
+Swap assets
+Old asset return + new asset install atomically
+De-installation
+Remove asset
+Unassign, condition, evidence, return
+Evidence
+Proof of work
+Photos/documents/client-configured evidence
+Confirmation
+Customer acceptance
+OTP/signature/declaration
+Pending
+Unable to complete
+Reason, remarks, next action date
+Completion
+Submit job
+Final validation, inventory update, status update
+Offline Sync
+Field resilience
+Queue, retry, idempotency, conflict handling
+
+12. Generic Work Order Fields
+Group
+Fields
+Identity
+work_order_id, external_reference(s), revision/version, work_order_type
+Customer
+customer_id, customer_name, contract/SLA
+Site
+site_id, site_code, address, geo, contact
+Schedule
+priority, SLA response/resolution, scheduled_from/to
+Assignment
+region, coordinator, engineer, assigned_at
+Asset
+existing asset, allocated asset, model/category, serial
+Problem / Request
+summary, description, fault/problem code
+Execution
+check-in/out, diagnosis, action, tests, checklist
+Inventory
+parts/components/consumables issued/used/returned
+Evidence
+typed photos/documents
+Confirmation
+customer name/mobile, signature/OTP/declaration
+Closure
+status, resolution, remark, description, completion time
+
+13. Core Data Model
+Table / Aggregate
+Key Fields
+customers
+id, code, name, industry, SLA_profile_id, active
+customer_sites
+id, customer_id, code, address, pincode, region_id, geo, geofence
+contracts
+id, customer_id, service scope, SLA, validity
+external_references
+entity_type/id, reference_type, reference_value
+assets
+id, SKU/model, serial, IMEI/tag, owner_customer_id, status, condition, current_location_type/id, holder_user_id
+inventory_balances
+location_type/id, SKU/model, status, condition, qty
+inventory_movements
+id, asset/SKU, from, to, movement_type, source_doc, user, timestamps, geo
+work_orders
+id, customer/site, type, priority, SLA, assigned engineer, status, schedule, external_ref
+work_order_activities
+work_order_id, event, from/to status, actor, timestamp, geo, remarks
+asset_site_assignments
+asset_id, site_id, work_order_id, active_from/to, status
+evidence
+work_order_id, type, object token, captured_by, captured_at, geo
+checklists / responses
+template/version and answer records
+stock_transfers
+source/destination, status, dispatch/receipt data
+returns / RMA
+asset, source, condition, disposition, repair/RMA links
+repair_jobs
+asset, diagnosis, action, parts, QC, disposition
+mobile_sync_events
+mobile_txn_id, engineer, event_type, payload hash, sync status
+
+14. API Architecture
+API Group
+Examples
+Authentication
+POST /auth/login; POST /auth/mfa/verify; POST /auth/refresh
+Customers/Sites
+GET/POST /customers; GET/POST /sites; external references
+Work Orders
+GET/POST /work-orders; assign; accept; start; check-in; pending; complete; close
+Assets
+GET /assets/{serial}; POST /assets/validate-scan; assign/unassign
+Inventory
+stock balance; transfer; dispatch; receipt; engineer issue; handover; adjustment
+Mobile
+GET /mobile/bootstrap; /mobile/tasks; /mobile/inventory; POST /mobile/sync
+Evidence
+upload token; submit evidence metadata
+Repair/RMA
+repair intake; diagnosis; QC; refurbish; scrap; vendor RMA
+Reports
+inventory, SLA, engineer productivity, asset history, returns, repair TAT
+
+Use versioned REST/JSON APIs, TLS, OAuth2/JWT or enterprise SSO, correlation IDs and consistent error responses.
+All mobile write APIs use idempotency/mobile transaction IDs.
+Inventory-changing APIs execute validation + movement + balance/status update in one transaction/outbox pattern.
+Customer-specific forms and external references are metadata/configuration driven rather than hard-coded.
+15. Security and Audit
+RBAC plus customer, region, warehouse and engineer scope.
+MFA configurable for privileged and mobile users.
+Encryption in transit and at rest; sensitive customer data masked by role.
+Immutable audit for status override, asset reassignment, inventory adjustment, work-order reassignment and reopen.
+GPS captured only for defined business events such as attendance/check-in/handover when configured.
+Evidence stored in secure object storage with access controls and retention policy.
+OTP values are never stored as plaintext.
+Remote logout, token rotation, minimum app version and device/session controls.
+16. Reports and Dashboards
+Area
+Reports / KPIs
+Inventory
+Stock by warehouse/hub/engineer/customer site; serial history; aging; in-transit; blocked; reconciliation
+FSM
+Open/assigned/in-progress/pending/closed work orders; SLA compliance/breach; first-time fix
+Engineer
+Jobs/day, completion rate, travel/check-in, pending reasons, stock aging, return overdue
+Customer
+Service history, installed asset base, SLA, repeat complaints, replacement/de-install trends
+Reverse Logistics
+Return aging, warehouse receipt TAT, repair TAT, refurbish yield, damage/scrap
+Audit
+Status overrides, serial reassignments, inventory adjustments, reopen/reassignment history
+
+17. Development Phases
+Phase
+Scope
+Primary Output
+Phase 1 – Foundation
+Architecture, DB, auth/MFA, RBAC, customer/site/region/user/engineer/model/status/reason masters
+Secure generic platform foundation
+Phase 2 – Core WMS
+ASN, GRN, QC, serialized putaway, inventory, transfer, pick/dispatch/receipt, cycle count
+Warehouse-to-region inventory
+Phase 3 – FSE Inventory
+FSE virtual location, stock issue/receipt, stock-in-hand, send/return, aging/reconciliation
+Region/Hub-to-engineer custody
+Phase 4 – FSM / Work Orders
+Customer requests, contracts/SLA, work-order engine, routing, coordinator/engineer assignment, asset allocation
+Generic task engine
+Phase 5 – Mobile Core
+Login, attendance, home, tasks, stock dashboard, receive/send stock, offline bootstrap
+Operational FSE app
+Phase 6 – Field Execution
+Installation, service, replacement, de-install, scan, GPS, checklist, evidence, signature/OTP
+End-to-end customer-site service
+Phase 7 – Reverse Logistics
+Returns, hub/warehouse receipt, condition grading, repair/refurbish/scrap/RMA
+Complete asset lifecycle
+Phase 8 – Reporting & Controls
+Dashboards, SLA, QC, notifications, audit, customer reports
+Operational control layer
+Phase 9 – UAT & Go-Live
+Integration, offline/conflict, security, performance, migration, training, production deployment
+Production release
+
+18. Key Acceptance Criteria
+No bank-specific field is mandatory in the core data model; industry/customer-specific identifiers use configurable external references.
+Every serialized asset has one traceable current location/holder and complete movement history.
+An engineer cannot install an asset not held/allocated to them unless an authorized business rule permits it.
+Replacement updates old-return and new-install movements atomically.
+De-installed/returned assets remain in engineer custody until receiving location confirms handover.
+Offline retries do not duplicate work-order events or inventory movements.
+Mandatory checklist/evidence/customer confirmation blocks completion when configured.
+Customer/site/asset/service history is visible end-to-end.
+All inventory adjustments, overrides and mapping corrections are audited.
+WMS and FSM remain synchronized through shared asset IDs, work-order IDs and movement source references.
+19. Recommended Technical Architecture
+Web Portals + React Native/Flutter Mobile → API Gateway → Authentication/RBAC → Customer/Contract Service + Work Order/FSM Service + WMS/Inventory Service + Asset Service + Evidence Service + Repair/RMA Service + Integration Service → Relational Database + Object Storage + Cache/Queue. A modular-monolith deployment is suitable initially, with clear domain boundaries for future service extraction.
+20. Developer Rules
+Treat Customer, Customer Site, Asset, Work Order and Inventory Movement as first-class domain entities.
+Never infer inventory solely from work-order status; inventory movements are explicit transactions.
+Keep asset status separate from current physical location/holder.
+Use append-only serialized movement history.
+Make workflows, checklists, evidence and external reference fields configurable by customer/work-order/model.
+Use scan-first UX for serialized assets/components.
+Use server-controlled transition matrices; mobile/web clients request commands, not arbitrary statuses.
+Use UTC server timestamps and retain captured local/mobile timestamp for offline events.
+Version checklist/templates so historical jobs remain reproducible.
+Maintain complete customer-site service history independent of engineer reassignment.
+
+21. Product Packaging Hierarchy for Inbound and Putaway
+The WMS inbound and putaway process shall support a three-level packaging hierarchy: Product Master -> Inner Carton -> Master Carton. For serialized products, each serial/IMEI remains traceable to its Product, Inner Carton, Master Carton, ASN, GRN and warehouse location.
+Level
+Purpose
+Example
+Product Master
+Defines SKU/product, model, serialization and packing configuration
+Device Model A / SKU-A
+Inner Carton
+Handling unit containing one product/SKU and configured quantity
+IC0001 = 10 units of SKU-A
+Master Carton
+Parent handling unit containing multiple inner cartons
+MC0001 = 5 inner cartons = 50 units
+
+21.1 Product Master - Packaging Configuration
+Field
+Description
+product_id / sku
+Unique product identifier
+product_name
+Product description
+model_id / category_id
+Model/category relationship
+serialized_flag
+Whether individual serial/IMEI scanning is mandatory
+primary_uom
+EA / PCS / UNIT
+inner_carton_enabled
+Whether product is packed in inner cartons
+units_per_inner_carton
+Standard product quantity per inner carton
+master_carton_enabled
+Whether inner cartons are grouped into master cartons
+inner_cartons_per_master
+Standard inner-carton count per master carton
+units_per_master_carton
+Derived/configured total units per master carton
+barcode_rule
+Product barcode format
+inner_carton_barcode_rule
+Inner-carton barcode format
+master_carton_barcode_rule
+Master-carton barcode format
+mixed_sku_allowed
+Whether a carton may contain multiple SKUs; default should be false unless business requires it
+active
+Master status
+
+22. Carton Data Model
+Entity
+Important Fields
+Master Carton
+master_carton_id, master_carton_barcode, ASN/GRN, vendor, warehouse, expected_inner_count, received_inner_count, expected_qty, received_qty, status, current_location
+Inner Carton
+inner_carton_id, inner_carton_barcode, master_carton_id, product_id, expected_qty, received_qty, status, current_location
+Product Serial
+serial_id, serial_no, IMEI/asset_tag, product_id, inner_carton_id, master_carton_id, ASN, GRN, status, current_location
+Carton Content
+carton_id/type, product_id, qty, serial_id where applicable
+Carton Movement
+movement_id, carton_id/type, from_location, to_location, movement_type, source_doc, user, timestamp
+Carton Break Event
+parent carton, child carton/product, break reason, operator, time, resulting handling units
+Carton QC
+carton/serial, QC status, condition, defect/reason, evidence
+
+23. Revised Inbound Process - Master Carton and Inner Carton
+ASN is created with vendor, warehouse, product/SKU, expected quantity and packaging details.
+Vehicle/shipment arrives at receiving dock and ASN is selected or scanned.
+Receiver scans the Master Carton barcode.
+System validates that the Master Carton belongs to the ASN and is not already received.
+System loads the expected Inner Cartons and expected product quantity for that Master Carton.
+Receiver scans each Inner Carton barcode inside the Master Carton, or uses trusted pre-advice hierarchy when configured.
+For serialized products, serial number/IMEI is scanned or validated against each Inner Carton.
+System validates Product Master packing configuration: product, units per inner carton, inner cartons per master carton and total quantity.
+Short, excess, duplicate, wrong-SKU, wrong-carton or damaged conditions are moved to exception handling.
+GRN is generated/confirmed for accepted quantity and serialized content.
+Inbound QC is performed at Master Carton, Inner Carton and/or serial level according to product policy.
+Accepted handling units move to receiving/staging inventory and become eligible for putaway.
+Rejected or damaged handling units move to quarantine/rejection location and cannot be allocated.
+23.1 Inbound Scan Validation Matrix
+Scan
+Validation
+Failure Example
+Master Carton
+ASN, vendor/source, duplicate receipt, expected status
+Carton already received or not part of ASN
+Inner Carton
+Parent master carton, SKU, duplicate, expected count
+Inner carton belongs to another master carton
+Product Barcode
+Product matches carton/SKU configuration
+Wrong product inside carton
+Serial / IMEI
+Unique, correct product/model, not previously received
+Duplicate serial or wrong model
+Quantity
+Matches configured packaging or approved variance
+Expected 10 units, received 9
+QC
+Condition and acceptance rules
+Damaged carton/asset
+
+24. Putaway Process - Carton-Aware Design
+Putaway shall be handling-unit aware. The warehouse may put away an unopened Master Carton, an individual Inner Carton, or loose serialized/non-serialized product after a carton has been broken. The WMS must preserve the parent-child hierarchy and prevent double movement of both a parent carton and its contained children.
+After GRN/QC, WMS creates putaway tasks for accepted stock in receiving/staging.
+Putaway engine identifies the handling level: Master Carton, Inner Carton or Loose Product/Serial.
+System recommends destination zone/bin using product category, model, customer ownership, condition, capacity and storage rules.
+Operator opens Putaway Task on handheld/mobile device.
+Operator scans the source/staging location.
+Operator scans the Master Carton or Inner Carton barcode. For loose serialized stock, scan product serial/IMEI.
+System validates that the handling unit is in the expected source location and is eligible for putaway.
+If a Master Carton is scanned and remains sealed, all contained Inner Cartons and product/serials move logically with the Master Carton.
+If an Inner Carton is scanned independently, WMS validates that it has been removed/broken from its parent Master Carton before independent movement.
+Operator scans the destination bin/location.
+System validates bin capacity, permitted product/category/customer/condition and mixing rules.
+Operator confirms putaway.
+WMS creates movement Receiving/Staging -> Storage Bin and updates the current location for the handling unit and all contained inventory.
+Putaway task becomes COMPLETED. Partial putaway remains OPEN/PARTIAL until all expected handling units are completed.
+Any mismatch is routed to Putaway Exception with reason, supervisor action and audit trail.
+24.1 Putaway Handling Rules
+Scenario
+Required WMS Behaviour
+Full Master Carton Putaway
+Scan MC once; move MC + all child Inner Cartons + contained products/serials to destination bin.
+Inner Carton Putaway
+Parent MC must be opened/broken or hierarchy updated; scan IC; move only that IC and its contents.
+Loose Serialized Putaway
+Serial must no longer be locked inside an intact carton; scan each serial or approved batch method.
+Partial Master Carton
+Record carton break; remaining children stay linked to parent/current location while removed children become independently movable.
+Mixed Destination
+One master carton cannot simultaneously exist in multiple bins. Break carton before distributing inner cartons.
+Damaged Carton
+Move to QC/quarantine; do not complete normal available-stock putaway.
+Wrong Bin
+Block confirmation and show permitted/recommended bin.
+Duplicate Scan
+Do not create a second movement; show already-putaway location/status.
+
+24.2 Putaway Task Fields
+Field
+Purpose
+putaway_task_id
+Unique task
+asn_id / grn_id
+Inbound source reference
+warehouse_id
+Receiving warehouse
+handling_unit_type
+MASTER_CARTON / INNER_CARTON / PRODUCT / SERIAL
+handling_unit_id / barcode
+Scanned carton or asset
+product_id / SKU
+Contained product
+expected_qty / putaway_qty
+Quantity control
+source_location_id
+Receiving/staging location
+suggested_location_id
+System-recommended bin
+actual_location_id
+Scanned destination bin
+status
+OPEN / IN_PROGRESS / PARTIAL / COMPLETED / EXCEPTION
+operator_user_id
+Warehouse user
+started_at / completed_at
+Execution timestamps
+exception_reason
+Required for mismatch/override
+override_user_id
+Supervisor authorization where allowed
+
+24.3 Suggested Putaway Location Logic
+Product/SKU storage strategy and compatible zone.
+Customer-owned versus common stock segregation.
+Serialized/high-value/security-controlled storage requirements.
+Product category, model and condition.
+Available bin capacity and carton dimensions/weight when maintained.
+FIFO/FEFO or receipt-date strategy where applicable.
+Avoid unnecessary carton breaking by preferring bins that can hold the complete Master Carton.
+Do not mix incompatible products/customers/statuses when bin-mixing rules prohibit it.
+Quarantine, damaged, repair and available inventory must remain in their permitted zones.
+25. Carton Break / Repack Process
+User selects Break Carton/Repack transaction and scans the Master Carton or Inner Carton.
+System displays the complete expected contents.
+User selects/scans the Inner Cartons or product units being removed.
+For serialized products, removed serials are explicitly scanned when required.
+WMS validates that removed quantity plus remaining quantity equals the original carton content.
+Parent/child hierarchy is updated without losing historical relationship.
+New handling-unit barcode may be generated for repacked stock.
+Carton break/repack event is audited with user, time, source location and reason.
+Only after hierarchy update can removed Inner Cartons/products be put away or transferred independently.
+26. Outbound Impact of Carton Hierarchy
+Picking should support full Master Carton, full Inner Carton or loose-unit allocation depending on order quantity.
+Full-carton picks should avoid unnecessary serial-by-serial handling while still retaining serial traceability.
+If an order requires less than a full carton, WMS creates/records a carton-break operation before loose/inner-carton picking.
+Dispatch hierarchy must preserve which Master/Inner Carton contains each serialized asset.
+Destination receiving can scan the outer handling unit and validate child contents according to configured trust/scan policy.
+27. Revised End-to-End WMS Flow
+Product Master & Packaging Configuration -> ASN -> Master Carton Receipt -> Inner Carton Receipt -> Product/Serial Validation -> GRN -> Inbound QC -> Receiving/Staging -> Carton-Aware Putaway -> Storage Inventory -> Reservation -> Picking -> Carton Break if Required -> Packing -> Dispatch -> Destination ASN/Receipt -> Region/Hub Inventory -> FSE Issue -> Customer Installation/Service -> Replacement/De-installation -> Reverse Logistics -> Warehouse/Repair/Refurbish/Scrap.
+28. Additional Acceptance Criteria - Inbound and Putaway
+A Master Carton barcode cannot be received twice against the same or another active receipt without authorized exception handling.
+Every Inner Carton has a valid parent Master Carton unless it has been formally broken/repacked into an independent handling unit.
+For serialized products, each serial is unique and traceable to Product -> Inner Carton -> Master Carton -> ASN -> GRN.
+Putting away a sealed Master Carton updates the location of all contained inventory without creating duplicate child movements.
+An Inner Carton cannot be moved independently while the system still treats its parent Master Carton as sealed/intact.
+The same Master Carton cannot exist in two warehouse bins.
+Partial putaway retains accurate remaining quantity/handling units at staging.
+Wrong-bin, wrong-product, wrong-carton, duplicate-serial and quantity-variance conditions are blocked or routed to authorized exception workflow.
+Carton break/repack preserves complete historical traceability.
+Outbound, transfer and reverse-logistics modules consume the same handling-unit hierarchy and movement ledger.

@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "local.service360.field"
+    },
+    "web": {
+      "output": "single",
+      "description": "Field tasks, inventory and proof of service",
+      "bundler": "metro",
+      "name": "Service360 Field Engineer"
+    },
+    "scheme": "service360",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Service360 to scan asset barcodes.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Service360 to attach service evidence.",
+          "cameraPermission": "Allow Service360 to capture service evidence.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Service360 to capture location only when you check in."
+        }
+      ],
+      "expo-secure-store",
+      "./plugins/withLocalNetwork"
+    ],
+    "slug": "service360-field",
+    "version": "1.0.0",
+    "name": "Service360 Field Engineer",
+    "orientation": "portrait",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true,
+          "NSAllowsArbitraryLoads": true
+        }
+      },
+      "bundleIdentifier": "local.service360.field"
+    }
+  }
+}

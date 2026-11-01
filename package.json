@@ -1,0 +1,16 @@
+{
+  "name": "service360",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Service360 field service and carton warehouse platform",
+  "scripts": {
+    "setup": "powershell -NoProfile -ExecutionPolicy Bypass -File ./Setup-Service360.ps1",
+    "start": "powershell -NoProfile -ExecutionPolicy Bypass -File ./Start-Service360.ps1",
+    "start:lan": "powershell -NoProfile -ExecutionPolicy Bypass -File ./Start-Service360.ps1 -Lan",
+    "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./Stop-Service360.ps1",
+    "build:web": "npm --prefix web run build",
+    "build:mobile": "npm --prefix mobile run export",
+    "test": "node tools/check.mjs",
+    "db:export": "node tools/export-database.mjs"
+  }
+}
