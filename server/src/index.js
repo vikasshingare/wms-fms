@@ -11,6 +11,7 @@ import {createAsn,receiveAsn,qcCarton,confirmPutaway,breakCarton,createTransfer,
 
 if(!process.env.JWT_SECRET || process.env.JWT_SECRET.length<32)throw new Error('Set JWT_SECRET to at least 32 random characters; run npm run db:init first.');
 const app=express();app.disable('x-powered-by');
+if(process.env.TRUST_PROXY==='loopback')app.set('trust proxy','loopback');
 app.use((req,res,next)=>{req.correlationId=randomUUID();res.set('X-Correlation-ID',req.correlationId);res.set('X-Content-Type-Options','nosniff');res.set('Cache-Control','no-store');next();});
 const origins=(process.env.CORS_ORIGINS||'http://localhost:5174,http://localhost:8081,http://localhost:8082').split(',');
 app.use(cors({origin(origin,cb){if(!origin||origins.includes(origin))return cb(null,true);try{const url=new URL(origin);if(['localhost','127.0.0.1'].includes(url.hostname))return cb(null,true);if(process.env.HOST==='0.0.0.0'&&/^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(url.hostname))return cb(null,true);}catch{}cb(new Error('Origin is not allowed'));},methods:['GET','POST','OPTIONS'],allowedHeaders:['Content-Type','Authorization','Idempotency-Key']}));

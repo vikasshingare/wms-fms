@@ -19,10 +19,11 @@ import {
   Screen,
   s,
 } from "../components/ui";
+const demo = process.env.EXPO_PUBLIC_DEMO_MODE !== "false";
 export default function Login() {
   const { login, token, busy } = useStore();
   const [email, setEmail] = useState("rahul@service360.local"),
-    [password, setPassword] = useState("Service360!"),
+    [password, setPassword] = useState(demo ? "Service360!" : ""),
     [error, setError] = useState("");
   if (token) return <Redirect href="/(tabs)" />;
   const signIn = async () => {
@@ -80,7 +81,7 @@ export default function Login() {
             <Text style={s.small}>Secure access for your field operations</Text>
           </View>
         </View>
-        <LinearGradient colors={["#EEE9FF", "#F8F6FF"]} style={styles.demo}>
+        {demo && <LinearGradient colors={["#EEE9FF", "#F8F6FF"]} style={styles.demo}>
           <View style={s.row}>
             <Icon name="user-check" size={18} />
             <Text style={[s.sectionTitle, { fontSize: 13 }]}>
@@ -89,7 +90,7 @@ export default function Login() {
           </View>
           <Text style={s.small}>Rahul Sharma · Field Service Engineer</Text>
           <Text style={s.small}>The demo credentials are filled in above.</Text>
-        </LinearGradient>
+        </LinearGradient>}
         <Text style={styles.footer}>SERVICE360 / FIELD OPERATIONS / V1.0</Text>
       </KeyboardAvoidingView>
     </Screen>

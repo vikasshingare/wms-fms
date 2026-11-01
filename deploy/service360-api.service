@@ -1,0 +1,23 @@
+[Unit]
+Description=Service360 Field Service and WMS API
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=service360
+Group=service360
+WorkingDirectory=/opt/service360/current/server
+EnvironmentFile=/etc/service360/api.env
+ExecStart=/usr/bin/node src/index.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0027
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
