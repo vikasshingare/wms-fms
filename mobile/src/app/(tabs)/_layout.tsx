@@ -1,10 +1,12 @@
 import React from "react";
 import { Redirect, Tabs } from "expo-router";
 import { useStore } from "../../lib/store";
+import { canPutAway } from "../../lib/types";
 import { C, Icon } from "../../components/ui";
 export default function TabLayout() {
-  const { token } = useStore();
+  const { token, user } = useStore();
   if (!token) return <Redirect href="/login" />;
+  if (canPutAway(user)) return <Redirect href="/warehouse-putaway" />;
   return (
     <Tabs
       screenOptions={{

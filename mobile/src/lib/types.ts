@@ -5,7 +5,10 @@ export type User = {
   email: string;
   role: string;
   location_id: number;
+  permissions?: string[];
 };
+export const canPutAway = (user?: User | null) =>
+  Boolean(user?.permissions?.some(permission => permission === "*" || permission === "warehouse.write"));
 export type Bootstrap = {
   user: User;
   stats: Row;

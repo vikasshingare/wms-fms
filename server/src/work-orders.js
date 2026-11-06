@@ -19,7 +19,7 @@ export async function createWork(c,user,b){
 export async function assignWork(c,user,id,b){
  if(user.role!=='admin')fail('Operations permission required',403,'FORBIDDEN');
  const w=await getWork(id,user,c,true);if(['COMPLETED','CLOSED','CANCELLED'].includes(w.status))fail('Terminal work orders cannot be assigned');
- const [engineer]=await query("SELECT * FROM users WHERE id=? AND role='engineer'",[int(b.engineer_id,'Engineer')],c);if(!engineer)fail('Engineer not found');
+ const [engineer]=await query("SELECT * FROM users WHERE id=? AND role IN ('engineer','FIELD_ENGINEER')",[int(b.engineer_id,'Engineer')],c);if(!engineer)fail('Engineer not found');
  if(b.allocated_asset_id){const [a]=await query('SELECT * FROM assets WHERE id=? FOR UPDATE',[int(b.allocated_asset_id,'Allocated asset')],c);if(!a||a.holder_user_id!==engineer.id||a.status!=='ISSUED_TO_ENGINEER')fail('Allocate an asset already issued to this engineer');if(w.product_id&&a.product_id!==w.product_id)fail('Allocated model does not match work order');const conflict=await query("SELECT id FROM work_orders WHERE allocated_asset_id=? AND id<>? AND status NOT IN ('COMPLETED','CLOSED','CANCELLED')",[a.id,w.id],c);if(conflict.length)fail('Asset is allocated to another active work order',409);}
  await query("UPDATE work_orders SET engineer_id=?,allocated_asset_id=?,status='ASSIGNED',version=version+1 WHERE id=?",[engineer.id,b.allocated_asset_id||null,w.id],c);
  await audit(c,user,'work_order',id,'ASSIGNED',`${w.code} assigned to ${engineer.name}`);return getWork(id,user,c);
@@ -47,7 +47,7 @@ async function completeWork(c,user,w,b){
  for(const type of decode(template.evidence_types,[])){const item=evidence.find(e=>e.type===type);if(!item?.id)fail(`Required evidence missing: ${type}`);const [stored]=await query('SELECT id,type,name FROM evidence WHERE id=? AND work_order_id=? AND type=?',[item.id,w.id,type],c);if(!stored)fail(`Upload valid ${type} evidence for this work order`);validated.push(stored);}
  if(!b.confirmation?.accepted||!String(b.confirmation?.name||'').trim())fail('Customer name and acceptance are required');
  const resolution=required(b.resolution,'Resolution');
- const [engineer]=await query("SELECT * FROM users WHERE id=? AND role='engineer'",[w.engineer_id],c);if(!engineer)fail('Work order needs an assigned engineer');
+ const [engineer]=await query("SELECT * FROM users WHERE id=? AND role IN ('engineer','FIELD_ENGINEER')",[w.engineer_id],c);if(!engineer)fail('Work order needs an assigned engineer');
  let newAsset=null,oldAsset=null;
  if(['Installation','Replacement'].includes(w.type)){
   const serial=required(b.serial,'New asset serial');newAsset=await getAssetBySerial(serial,user,c,true);

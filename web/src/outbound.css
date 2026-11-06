@@ -1,0 +1,36 @@
+.outbound-form { margin-bottom: 20px; padding: 22px; }
+.outbound-form > form { margin-top: 16px; }
+.outbound-form h3 { margin-top: 20px; }
+.outbound-form .table-scroll { margin: 16px 0; }
+.outbound-line { padding: 12px 0; border-top: 1px solid #e8e8f1; align-items: end; }
+.outbound-step { margin-top: 16px; display: grid; gap: 12px; justify-items: start; }
+.outbound-step > .asn-fields, .outbound-step > .field { width: 100%; }
+.outbound-document { margin: 18px 0; padding: 20px; background: #fff; color: #17233d; border: 1px solid #dce3ed; }
+.outbound-document h2, .outbound-document h3 { text-align: center; color: #245b9b; margin: 0 0 12px; }
+.outbound-document-meta { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1px; background: #dce3ed; border: 1px solid #dce3ed; }
+.outbound-document-meta > div { display: grid; grid-template-columns: minmax(90px,1fr) 2fr; gap: 8px; background: #fff; padding: 8px; }
+.outbound-document-meta dt { font-weight: 700; }
+.outbound-document-meta dd { margin: 0; overflow-wrap: anywhere; }
+.outbound-signatures { display: grid; grid-template-columns: repeat(2,1fr); margin: 16px 0; }
+.outbound-signatures div { border: 1px solid #dce3ed; padding: 12px; min-height: 75px; }
+.outbound-print .inbound-dialog { width: min(1050px,96vw); }
+
+@media (max-width: 650px) {
+ .outbound-document-meta { grid-template-columns: 1fr; }
+}
+
+@media print {
+ body:has(.outbound-print) > :not(.outbound-print) { display: none !important; }
+ body:has(.outbound-print) { overflow: visible !important; background: white !important; }
+ .outbound-print, .outbound-print .inbound-dialog, .outbound-print .inbound-dialog-body {
+  position: static !important; display: block !important; overflow: visible !important;
+  max-height: none !important; width: 100% !important; padding: 0 !important; background: white !important;
+ }
+ .outbound-print .modal-header { display: none !important; }
+ .outbound-print .outbound-document { margin: 0; padding: 0; border: 0; }
+ .outbound-print .table-scroll { overflow: visible !important; }
+ .outbound-print table { width: 100%; min-width: 0; table-layout: fixed; font-size: 9pt; }
+ .outbound-print td, .outbound-print th { padding: 4px; overflow-wrap: anywhere; white-space: normal; border: 1px solid #777; }
+ .outbound-print tr, .outbound-print .outbound-signatures { break-inside: avoid; }
+ .outbound-print thead { display: table-header-group; }
+}

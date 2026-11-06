@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+const base='http://127.0.0.1:4001/api/v1';
+async function req(path,body,token,status=200){const r=await fetch(base+path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},...(body?{body:JSON.stringify(body)}:{})});const data=await r.json();assert.equal(r.status,status,JSON.stringify({path,data}));return data;}
+const login=(email,password='Service360!')=>req('/auth/login',{email,password});
+await req('/auth/me',null,null,401);
+await req('/auth/login',{email:'unknown@example.test',password:'invalid'},null,401);
+let admin=await login('admin@service360.local');
+assert.equal((await req('/auth/me',null,admin.token)).role,'SYSTEM_ADMIN');
+const rotated=await req('/auth/refresh',{refresh_token:admin.refresh_token});
+await req('/auth/me',null,admin.token,401);
+await req('/auth/refresh',{refresh_token:admin.refresh_token},null,401);
+await req('/auth/me',null,rotated.token,401);
+admin=await login('admin@service360.local');
+const engineer=await login('rahul@service360.local');
+const e=await req('/bootstrap',null,engineer.token);
+assert(e.work_orders.every(w=>w.engineer_id===3));assert(e.assets.every(a=>a.holder_user_id===3));
+assert(e.customers.every(c=>e.sites.some(s=>s.customer_id===c.id)));
+await req('/work-orders/6',null,engineer.token,404);
+await req('/users',null,engineer.token,403);
+const customer=await login('customer@service360.local');
+const c=await req('/bootstrap',null,customer.token);
+for(const key of ['sites','assets','work_orders'])assert(c[key].every(x=>x.customer_id===1));
+await req('/work-orders/3',null,customer.token,404);
+await req('/products',{sku:'X',name:'Forbidden'},customer.token,403);
+const roles=['SUPER_ADMIN','SYSTEM_ADMIN','HO_OPERATIONS','WAREHOUSE_MANAGER','WAREHOUSE_OPERATOR','REGIONAL_MANAGER','COORDINATOR','REGIONAL_STOCK_MANAGER','FIELD_ENGINEER','CUSTOMER_ADMIN','CUSTOMER_USER','AUDITOR','REPAIR_TECHNICIAN'];
+for(const role of roles){const email=`${role.toLowerCase()}@qa.test`;if(role==='SUPER_ADMIN'){await req('/users',{name:role,email,password:'TestPassword123!',role},admin.token,403);continue;}await req('/users',{name:role,email,password:'TestPassword123!',role,customer_id:1,location_id:2,region:'North'},admin.token,201);const session=await login(email,'TestPassword123!');assert.equal(session.user.role,role);const data=await req('/bootstrap',null,session.token);if(role.startsWith('WAREHOUSE_')){assert(data.locations.every(l=>l.id===2));assert(data.assets.every(a=>a.location_id===2));await req('/cartons/1/qc',{result:'PASS'},session.token,403);await req('/assets/SN78451244',null,session.token,403);}if(role==='COORDINATOR'){assert(data.work_orders.every(w=>data.sites.some(s=>s.id===w.site_id&&s.region==='North')));await req('/work-orders/3',null,session.token,404);}if(role==='AUDITOR')await req('/products',{sku:'NO',name:'No write'},session.token,403);}
+const accounts=await req('/users',null,admin.token);const target=accounts.find(u=>u.email==='coordinator@qa.test');const before=await login(target.email,'TestPassword123!');await req('/users/'+target.id+'/update',{role:'AUDITOR',region:'South'},admin.token);await req('/auth/me',null,before.token,401);const updated=await login(target.email,'TestPassword123!');await req('/products',{sku:'NO2',name:'No write'},updated.token,403);const events=(await req('/bootstrap',null,admin.token)).activities;assert(events.some(a=>a.action==='LOGIN'));assert(events.some(a=>a.action==='FAILED_LOGIN'));assert(events.some(a=>a.action==='ROLE_CHANGED'));
+await req('/auth/logout',{},customer.token);
+await req('/auth/me',null,customer.token,401);
+await req('/auth/refresh',{refresh_token:customer.refresh_token},null,401);
+console.log('PASS: authentication, refresh rotation/replay, logout revocation, all 13 roles, customer/engineer/warehouse isolation and denied writes.');

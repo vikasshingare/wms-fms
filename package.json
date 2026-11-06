@@ -11,6 +11,8 @@
     "build:web": "npm --prefix web run build",
     "build:mobile": "npm --prefix mobile run export",
     "test": "node tools/check.mjs",
-    "db:export": "node tools/export-database.mjs"
+    "db:export": "node tools/export-database.mjs",
+    "test:auth": "node tools/check.mjs",
+    "test:inbound": "node tools/check.mjs"
   }
 }

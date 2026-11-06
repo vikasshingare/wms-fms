@@ -39,7 +39,8 @@ try {
     await new Promise(resolve => setTimeout(resolve, 300));
   }
   if (!ready) throw new Error('Test API did not become ready.');
-  await run(path.join(root, 'tests/integration.mjs'), root);
+  await run(path.join(root, process.env.TEST_SCRIPT || ({ 'test:auth':'tests/auth-rbac.mjs','test:inbound':'tests/pieces-inbound.mjs' }[process.env.npm_lifecycle_event]||'tests/integration.mjs')), root);
+  if(!process.env.TEST_SCRIPT&&process.env.npm_lifecycle_event==='test:inbound')await run(path.join(root,'tests/warehouse-transfer.mjs'),root);
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;

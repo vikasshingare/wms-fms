@@ -32,3 +32,14 @@ npx expo export --platform android --output-dir dist-android
 ```
 
 The browser preview cannot verify physical camera, device GPS or native permission prompts. Production rollout still requires device testing, HTTPS and production identity/security configuration. Customer confirmation is a declaration/signature; SMS OTP and enterprise MFA are not connected.
+
+## Signed Android APK
+
+Run `powershell -NoProfile -ExecutionPolicy Bypass -File .\Build-Android.ps1` from this directory. Java and the Android SDK must be installed. The script generates the native Android project through Expo, then creates a release APK with the JavaScript bundle included. It targets ARM64 and ARMv7 Android phones and uses the hosted HTTPS API by default. No Expo Go or Metro server is needed.
+
+The output is `../releases/Service360-1.0.2.apk`. Sign in with the deployed engineer credentials, not the local demo password. The APK includes no server account password or database credential.
+
+The signing key and passwords are kept locally in `../.runtime/android-signing/` and excluded from Git. Preserve a secure backup of that directory to sign future updates with the same identity. `plugins/withReleaseSigning.js` supplies signing settings through environment variables; it never writes passwords into generated Gradle files.
+
+
+Warehouse putaway uses master carton -> product_barcode -> bin for new stock and incoming warehouse transfers. Inner-carton input and scanning are not required. The server provides pending masters through /inbound/putaway-options. Install version 1.0.2 to use this flow in the Android app.

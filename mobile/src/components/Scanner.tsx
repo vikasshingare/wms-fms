@@ -6,8 +6,10 @@ export function Scanner({
   visible,
   onClose,
   onScan,
+  label = "asset barcode",
 }: {
   visible: boolean;
+  label?: string;
   onClose: () => void;
   onScan: (serial: string) => void;
 }) {
@@ -32,15 +34,14 @@ export function Scanner({
           <View style={s.split}>
             <View style={s.row}>
               <Icon name="maximize" />
-              <Text style={s.sectionTitle}>Scan asset barcode</Text>
+              <Text style={s.sectionTitle}>Scan {label}</Text>
             </View>
             <Pressable onPress={onClose} accessibilityLabel="Close scanner">
               <Icon name="x" />
             </Pressable>
           </View>
           <Text style={s.body}>
-            Scan the QR code or barcode on the asset label. You can also enter
-            the serial number.
+            Scan the label or enter the barcode manually.
           </Text>
           {camera && permission?.granted ? (
             <View style={styles.camera}>
@@ -83,7 +84,7 @@ export function Scanner({
             />
           )}
           <Field
-            label="Serial number"
+            label="Barcode"
             placeholder="e.g. S360-POS-1001"
             value={manual}
             onChangeText={setManual}
@@ -91,7 +92,7 @@ export function Scanner({
           />
           <ErrorText error={error} />
           <Button
-            title="Use serial number"
+            title="Use barcode"
             disabled={!manual.trim()}
             onPress={() => scan(manual)}
           />

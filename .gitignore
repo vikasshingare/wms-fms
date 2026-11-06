@@ -12,3 +12,9 @@ server/uploads/
 mobile/android/
 mobile/ios/
 *.tsbuildinfo
+*.apk
+*.aab
+*.keystore
+*.jks
+output/
+tmp/

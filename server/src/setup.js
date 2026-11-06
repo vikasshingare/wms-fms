@@ -1,3 +1,4 @@
+import {migrateInbound,seedInboundMasters} from './inbound-schema.js';
 import 'dotenv/config';
 import mysql from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
@@ -20,8 +21,9 @@ await admin.query(`GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, R
 await admin.changeUser({database:DB});
 await admin.query("SET time_zone = '+00:00'");
 for (const sql of schema) await admin.query(sql);
+await migrateInbound(admin);
 const [[existing]]=await admin.query('SELECT COUNT(*) count FROM users');
-if(existing.count){console.log('Service360 schema ready; existing data preserved.');await admin.end();process.exit(0);}
+if(existing.count){await seedInboundMasters(admin);console.log('Service360 schema ready; existing data preserved.');await admin.end();process.exit(0);}
 const hash=await bcrypt.hash('Service360!',12);
 await admin.beginTransaction();
 try{
@@ -67,5 +69,5 @@ try{
   const activity=[['work_order',1,'ASSIGNED','WO-100245 assigned to Rahul Sharma'],['carton',1,'QC_PASSED','MC-000781 passed inbound quality checks'],['asn',2,'RECEIVED','GRN created for ASN-000562'],['work_order',8,'COMPLETED','WO-100239 completed by Rahul Sharma'],['transfer',1,'DISPATCHED','Stock dispatched from North Hub to Rahul Sharma'],['return',1,'RETURN_REQUESTED','Return initiated for SN78451245']];
   for(const a of activity)await admin.query('INSERT INTO activities(entity_type,entity_id,action,description,actor_id) VALUES (?,?,?,?,1)',a);
   await admin.query("INSERT INTO movements(asset_id,from_location_id,to_location_id,movement_type,source_type,actor_id,notes) SELECT id,NULL,location_id,'OPENING_BALANCE','seed',1,'Seeded local demonstration inventory' FROM assets WHERE status<>'EXPECTED'");
-  await admin.commit();console.log('Service360 database initialized with customers, engineers, tasks, stock and cartons.');
+  await seedInboundMasters(admin);await admin.commit();console.log('Service360 database initialized with customers, engineers, tasks, stock and cartons.');
 }catch(e){await admin.rollback();throw e;}finally{await admin.end();}

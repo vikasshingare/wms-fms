@@ -2,7 +2,8 @@
   "expo": {
     "userInterfaceStyle": "light",
     "android": {
-      "package": "local.service360.field"
+      "package": "local.service360.field",
+      "versionCode": 3
     },
     "web": {
       "output": "single",
@@ -38,7 +39,7 @@
       "./plugins/withLocalNetwork"
     ],
     "slug": "service360-field",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "name": "Service360 Field Engineer",
     "orientation": "portrait",
     "ios": {

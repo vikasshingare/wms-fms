@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ApiError, key, newId, request, tokenStore } from "./api";
-import { Bootstrap, QueueItem, Row, User } from "./types";
+import { Bootstrap, QueueItem, Row, User, canPutAway } from "./types";
 
 type Store = {
   token: string | null;
@@ -172,15 +172,16 @@ export function Provider({ children }: { children: React.ReactNode }) {
     setBusy(true);
     try {
       const auth = await request("/auth/login", null, { email, password });
-      if (auth.user.role !== "engineer")
+      if (!["engineer","FIELD_ENGINEER"].includes(auth.user.role) && !canPutAway(auth.user))
         throw new Error(
-          "Please use a field engineer account in the mobile app.",
+          "Use a field engineer or warehouse account in the mobile app.",
         );
       tokenRef.current = auth.token;
       userRef.current = auth.user;
       setToken(auth.token);
       setUser(auth.user);
       await tokenStore.set(auth.token);
+      await tokenStore.setRefresh(auth.refresh_token);
       await AsyncStorage.setItem(`${key}.user`, JSON.stringify(auth.user));
       const saved = await AsyncStorage.getItem(`${key}.${auth.user.id}.queue`);
       queueRef.current = saved ? JSON.parse(saved) : [];
@@ -191,6 +192,8 @@ export function Provider({ children }: { children: React.ReactNode }) {
     }
   };
   const logout = async () => {
+    try { await request("/auth/logout",await tokenStore.get(),{}); } catch {}
+    await tokenStore.removeRefresh();
     await tokenStore.remove();
     await AsyncStorage.removeItem(`${key}.user`);
     setToken(null);

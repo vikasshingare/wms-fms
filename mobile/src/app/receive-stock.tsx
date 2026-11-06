@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Image, Pressable, Text, View } from "react-native";
 import { useStore } from "../lib/store";
+import { request } from "../lib/api";
 import {
   Badge,
   Button,
@@ -18,12 +19,21 @@ import {
 import { Scanner } from "../components/Scanner";
 import { Row } from "../lib/types";
 export default function ReceiveStock() {
-  const { data, user, submit, setNotice } = useStore();
+  const { data, user, token, submit, setNotice } = useStore();
+  const [photoResult, setPhotoResult] = useState<{ id: number; uri?: string; error?: string } | null>(null);
   const [selected, setSelected] = useState<Row | null>(null),
     [serials, setSerials] = useState(""),
     [scanner, setScanner] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  useEffect(() => {
+    if (!selected?.outbound?.has_photo || !token) return;
+    let active = true;
+    request(`/outbound/${selected.id}/photo`, token)
+      .then(result => { if (active) setPhotoResult({ id: selected.id, uri: result.photo }); })
+      .catch(() => { if (active) setPhotoResult({ id: selected.id, error: "Product photo could not be loaded." }); });
+    return () => { active = false; };
+  }, [selected, token]);
   const transfers = (data?.transfers || []).filter(
     (t) =>
       t.destination_location_id === user?.location_id &&
@@ -108,6 +118,8 @@ export default function ReceiveStock() {
           <Card>
             <Text style={s.sectionTitle}>{selected.code}</Text>
             <Info label="From" value={selected.source_name} />
+            {photoResult?.id === selected.id && photoResult?.uri ? <Image accessibilityLabel="Product photo from the warehouse" source={{ uri: photoResult.uri }} resizeMode="contain" style={{ width: "100%", height: 180 }} /> : null}
+            {photoResult?.id === selected.id && photoResult?.error ? <Text style={s.small}>{photoResult.error}</Text> : null}
             <Info
               label="Expected assets"
               value={selected.qty || selected.serials?.length}

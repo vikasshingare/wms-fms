@@ -6,9 +6,10 @@ import {
   Text,
   View,
 } from "react-native";
-import { Redirect, router } from "expo-router";
+import { Redirect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useStore } from "../lib/store";
+import { canPutAway } from "../lib/types";
 import {
   Button,
   C,
@@ -21,16 +22,16 @@ import {
 } from "../components/ui";
 const demo = process.env.EXPO_PUBLIC_DEMO_MODE !== "false";
 export default function Login() {
-  const { login, token, busy } = useStore();
+  const { login, token, busy, user } = useStore();
   const [email, setEmail] = useState("rahul@service360.local"),
     [password, setPassword] = useState(demo ? "Service360!" : ""),
     [error, setError] = useState("");
-  if (token) return <Redirect href="/(tabs)" />;
+  if (token) return <Redirect href={canPutAway(user) ? "/warehouse-putaway" : "/(tabs)"} />;
   const signIn = async () => {
     setError("");
     try {
       await login(email, password);
-      router.replace("/(tabs)");
+
     } catch (e: any) {
       setError(e.message);
     }
@@ -46,7 +47,7 @@ export default function Login() {
           <Logo />
           <View style={styles.role}>
             <View style={styles.dot} />
-            <Text style={styles.roleText}>FIELD ENGINEER WORKSPACE</Text>
+            <Text style={styles.roleText}>FIELD & WAREHOUSE WORKSPACE</Text>
           </View>
         </View>
         <View style={styles.form}>

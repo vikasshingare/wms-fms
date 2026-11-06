@@ -7,7 +7,7 @@ module.exports = function withLocalNetwork(config) {
     const application = result.modResults.manifest.application?.[0];
     if (application) {
       application.$ = application.$ || {};
-      application.$['android:usesCleartextTraffic'] = 'true';
+      application.$['android:usesCleartextTraffic'] = process.env.SERVICE360_RELEASE_BUILD === 'true' ? 'false' : 'true';
     }
     return result;
   });
