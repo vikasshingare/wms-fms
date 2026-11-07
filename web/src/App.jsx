@@ -7,7 +7,8 @@ import {Activity,ArrowDownLeft,ArrowDownToLine,ArrowRight,ArrowUpRight,ArrowUpDo
 const EngineerMap=React.lazy(()=>import('./EngineerMap'));
 const API=import.meta.env.VITE_API_URL||'/api';
 const DEMO=import.meta.env.VITE_DEMO_MODE!=='false';
-const MOBILE_URL=import.meta.env.VITE_MOBILE_URL||`http://${location.hostname}:8081`;
+const SERVICE_BASE=import.meta.env.BASE_URL.replace(/\/+$/,'');
+const MOBILE_URL=import.meta.env.VITE_MOBILE_URL||(import.meta.env.PROD?`${SERVICE_BASE}/mobile/`:`http://${location.hostname}:8081`);
 const empty={stats:{},work_orders:[],assets:[],customers:[],sites:[],engineers:[],locations:[],products:[],asns:[],cartons:[],putaway_tasks:[],transfers:[],returns:[],activities:[],checklist_templates:[]};
 const titleCase=s=>String(s||'—').replaceAll('_',' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
 const date=s=>s?new Date(s).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';
